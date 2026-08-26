@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroScript Writer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --paper-color: #f4ebd8;
+            --ink-color: #1a1a1a;
+            --ribbon-red: #a32a2a;
+            --brass-light: #d4af37;
+            --brass-dark: #8a6a1c;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            background-image: url('image_73a762.jpg');
+            background-size: cover;
+            background-position: center;
+            image-rendering: pixelated; 
+            font-family: 'Courier Prime', monospace;
+            color: var(--ink-color);
+        }
+
+        .vintage-logo {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            font-family: 'Special Elite', cursive;
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .app-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .desk-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 0px; 
+        }
+
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 6px; border: 1px solid #111; }
+
+        .paper {
+            width: 800px;
+            min-height: 400px;
+            background-color: var(--paper-color);
+            box-shadow: 0 0 25px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.05);
+            margin-top: auto; 
+            margin-bottom: -20px; 
+            padding: 40px 60px 80px 60px; 
+            position: relative;
+            z-index: 5;
+            transition: transform 0.6s cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+
+        #editor {
+            outline: none;
+            min-height: 100%;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 1.1rem;
+            position: relative;
+        }
+        
+        #editor p { margin-bottom: 1em; }
+
+        .fmt-book-normal { text-align: left; text-indent: 2rem; }
+        .fmt-book-chapter { text-align: center; font-weight: bold; font-size: 1.5em; text-transform: uppercase; margin-top: 2em; margin-bottom: 1em; }
+        .fmt-book-scene { text-align: center; margin: 2em 0; }
+        
+        .fmt-screenplay-scene { text-transform: uppercase; font-weight: bold; margin-top: 2em; }
+        .fmt-screenplay-action { text-align: left; margin-top: 1em; }
+        .fmt-screenplay-character { text-align: center; text-transform: uppercase; width: 50%; margin: 1.5em auto 0 auto; }
+        .fmt-screenplay-dialogue { text-align: left; width: 60%; margin: 0 auto; }
+
+        .tw-chassis {
+            flex-shrink: 0;
+            width: 100%;
+            background: linear-gradient(to bottom, #1a1a1a, #050505);
+            border-top: 3px solid #2a2a2a;
+            box-shadow: 0 -15px 30px rgba(0,0,0,0.9);
+            position: relative;
+            z-index: 20;
+            padding: 15px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .platen {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 880px;
+            height: 25px;
+            background: repeating-linear-gradient(to bottom, #222, #111 2px, #000 4px);
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.8);
+            z-index: 25; 
+        }
+
+        .striker-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            pointer-events: none;
+            z-index: 22; 
+        }
+
+        .striker-pivot {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 10px;
+            perspective: 800px;
+            transition: left 0.05s linear;
+        }
+
+        .striker {
+            width: 6px;
+            height: var(--strike-height, 80px);
+            background: linear-gradient(to right, #555, #999, #555);
+            position: absolute;
+            bottom: -5px; 
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotateX(85deg) rotateY(0deg);
+            opacity: 0;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            transition: height 0.05s linear;
+        }
+
+        .striker-head {
+            position: absolute;
+            top: -12px;
+            left: -10px;
+            width: 26px;
+            height: 18px;
+            background: linear-gradient(to bottom, #444, #777);
+            border-radius: 3px;
+            box-shadow: inset 0 2px 3px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .striker-head::after {
+            content: var(--typed-char, '');
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+            color: #111;
+            transform: scaleY(-1) scaleX(-1); 
+            opacity: 0.7;
+        }
+
+        .ribbon {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 14px;
+            background: linear-gradient(to bottom, #000 50%, var(--ribbon-red) 50%);
+            opacity: 0;
+            border-radius: 2px;
+            transition: opacity 0.1s;
+            z-index: 23;
+        }
+
+        .striker.strike-active {
+            opacity: 1;
+            animation: strikeAnim 0.12s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+
+        @keyframes strikeAnim {
+            0% { transform: translateX(-50%) rotateX(85deg) rotateY(var(--strike-angle, 0deg)); }
+            45% { transform: translateX(-50%) rotateX(0deg) rotateY(calc(var(--strike-angle, 0deg) * 0.2)); }
+            100% { transform: translateX(-50%) rotateX(85deg) rotateY(var(--strike-angle, 0deg)); }
+        }
+
+        .tw-plaques { display: flex; flex-direction: column; gap: 8px; }
+        
+        .tw-plaque {
+            background: #0a0a0a;
+            color: var(--brass-light);
+            border: 2px solid var(--brass-dark);
+            padding: 4px 10px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 2px 5px rgba(0,0,0,0.6);
+            width: 180px;
+            border-radius: 2px;
+        }
+
+        .tw-formats { display: flex; gap: 8px; justify-content: center; flex-grow: 1; }
+
+        .tw-pill {
+            background: linear-gradient(to bottom, #eee, #bbb);
+            border: 2px solid #555;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-family: 'Special Elite', cursive;
+            font-size: 0.75rem;
+            color: #111;
+            box-shadow: 0 3px 0 #222, 0 4px 8px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.1s;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+        }
+        
+        .tw-pill:active { transform: translateY(3px); box-shadow: 0 0 0 #222, 0 1px 2px rgba(0,0,0,0.5); }
+        .tw-pill.active { background: linear-gradient(to bottom, #c93a3a, #8c1e1e); color: white; border-color: #521010; text-shadow: none; }
+
+        .tw-actions { display: flex; gap: 12px; align-items: center; }
+
+        .tw-key {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #f0f0f0, #a0a0a0);
+            border: 3px solid #111;
+            box-shadow: 0 3px 0 #050505, 0 4px 8px rgba(0,0,0,0.7), inset 0 0 0 2px #d0d0d0;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1rem; transition: all 0.1s; color: #111;
+        }
+        .tw-key:active { transform: translateY(3px); box-shadow: 0 0 0 #050505; }
+
+        .ink-gauge {
+            position: absolute; bottom: 90px; right: 30px; width: 90px; height: 90px;
+            background: radial-gradient(circle, #f4ebd8, #d3c4a1); border: 4px solid var(--brass-dark);
+            border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: 12px; z-index: 30;
+        }
+
+        .ink-gauge::before {
+            content: ''; position: absolute; top: 8px; left: 8px; right: 8px; bottom: 50%; border-radius: 50px 50px 0 0;
+            background: conic-gradient(from -90deg at 50% 100%, #4CAF50 0deg, #FFC107 90deg, #F44336 180deg); opacity: 0.3;
+        }
+
+        .gauge-needle {
+            position: absolute; bottom: 50%; left: 50%; width: 35px; height: 2px;
+            background: #d63031; transform-origin: left center; transform: rotate(-180deg); 
+            transition: transform 0.5s ease; box-shadow: 0 2px 2px rgba(0,0,0,0.5);
+        }
+
+        .gauge-text { font-family: 'Special Elite', cursive; font-size: 0.55rem; text-align: center; color: #222; line-height: 1.1; }
+
+        .btn-rip {
+            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(to bottom, #d64545, #a32a2a); color: white; border: 2px solid #fff;
+            padding: 10px 25px; font-family: 'Special Elite', cursive; font-size: 1.1rem; border-radius: 4px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.8); cursor: pointer; z-index: 30; display: none; animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.05); } }
+
+        .stack-container { position: absolute; top: 100px; right: 20px; display: flex; flex-direction: column; gap: -75px; z-index: 10; }
+
+        .stack-page {
+            width: 70px; height: 90px; background-color: var(--paper-color);
+            background-image: linear-gradient(90deg, rgba(0,0,0,0.05) 0%, transparent 5%);
+            border: 1px solid #111; box-shadow: 3px 3px 6px rgba(0,0,0,0.7), inset -1px -1px 3px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: var(--ribbon-red);
+            cursor: pointer; transition: all 0.2s; position: relative; flex-shrink: 0; user-select: none;
+        }
+        
+        .stack-page:hover { transform: translateX(-8px) scale(1.05) !important; background-color: #fff; z-index: 50 !important; }
+        .stack-page.active { 
+            border: 2px solid var(--ribbon-red); box-shadow: 0 0 15px rgba(155, 44, 44, 0.9), inset 0 0 5px rgba(0,0,0,0.1);
+            transform: translateX(-15px) !important; z-index: 40 !important; 
+        }
+
+        .anim-rip { animation: ripAnim 0.6s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards; pointer-events: none; }
+        @keyframes ripAnim {
+            0% { transform: translateY(0) rotate(0); opacity: 1; filter: sepia(0); }
+            20% { transform: translateY(-20px) rotate(-2deg); filter: sepia(0.5); }
+            100% { transform: translateY(-150%) rotate(10deg); opacity: 0; filter: sepia(1); }
+        }
+
+        #toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%); padding: 15px 30px;
+            font-family: 'Special Elite', cursive; border: 2px solid var(--brass-light); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 9999; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: white; background: linear-gradient(180deg, #4CAF50 0%, #1b5e20 100%);
+        }
+        #toast.show { top: 20px; }
+        #toast.toast-error { background: linear-gradient(180deg, var(--ribbon-red) 0%, #5a1a1a 100%); border-color: #300000; }
+
+    </style>
+</head>
+<body>
+
+    <div class="vintage-logo">RETROSCRIPT</div>
+    <div id="toast"></div>
+    <div class="stack-container" id="page-stack"></div>
+
+    <div class="ink-gauge">
+        <div class="gauge-needle" id="gauge-needle"></div>
+        <div class="gauge-text">INK LVL<br><span id="words-left">10000</span> LEFT</div>
+    </div>
+    
+    <button class="btn-rip" id="btn-rip">RIP PAGE</button>
+
+    <div class="app-layout">
+        <main class="desk-area" id="desk">
+            <div class="paper" id="paper-container">
+                <div id="editor" contenteditable="true" spellcheck="false" class="fmt-book-normal"></div>
+            </div>
+        </main>
+
+        <div class="tw-chassis" id="chassis">
+            <div class="platen"></div>
+            
+            <div class="striker-container">
+                <div class="ribbon" id="ribbon"></div>
+                <div class="striker-pivot" id="striker-pivot">
+                    <div class="striker" id="striker">
+                        <div class="striker-head" id="striker-head"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tw-plaques">
+                <input id="doc-title" class="tw-plaque" value="Untitled Masterpiece">
+                <select id="format-select" class="tw-plaque">
+                    <option value="book">Book / Novel</option>
+                    <option value="screenplay">Screenplay</option>
+                    <option value="short">Short Story</option>
+                </select>
+            </div>
+
+            <div class="tw-formats" id="format-toolbar"></div>
+
+            <div class="tw-actions">
+                <button id="btn-sound" class="tw-key" title="Toggle Sound">♪</button>
+                <button id="btn-rip-early" class="tw-key" title="Rip Page (New Page)" style="font-size: 1.2rem;">⏏</button>
+                <label class="tw-key" title="Load File">
+                    ↑
+                    <input type="file" id="file-upload" accept=".rscript" class="hidden">
+                </label>
+                <button id="btn-save" class="tw-key" title="Save File">↓</button>
+                <button id="btn-publish" class="tw-key" title="Publish to TXT" style="font-size: 1.1rem; font-family: 'Courier Prime', monospace; font-weight: bold;">P</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const desk = document.getElementById('desk');
+        const paperContainer = document.getElementById('paper-container');
+        const striker = document.getElementById('striker');
+        const strikerPivot = document.getElementById('striker-pivot');
+        const strikerHead = document.getElementById('striker-head');
+        const ribbon = document.getElementById('ribbon');
+        const chassis = document.getElementById('chassis');
+        const formatSelect = document.getElementById('format-select');
+        const formatToolbar = document.getElementById('format-toolbar');
+        const toast = document.getElementById('toast');
+        const btnSound = document.getElementById('btn-sound');
+        const btnRipEarly = document.getElementById('btn-rip-early');
+        const btnSave = document.getElementById('btn-save');
+        const btnPublish = document.getElementById('btn-publish');
+        const fileUpload = document.getElementById('file-upload');
+        const btnRip = document.getElementById('btn-rip');
+        const pageStack = document.getElementById('page-stack');
+        const gaugeNeedle = document.getElementById('gauge-needle');
+        const wordsLeftDisplay = document.getElementById('words-left');
+        const docTitle = document.getElementById('doc-title');
+
+        let pages = [""];
+        let currentPageIndex = 0;
+        let dailyWords = 0;
+        const MAX_DAILY_WORDS = 10000;
+        const MAX_PAGE_WORDS = 1000;
+        let soundEnabled = true;
+        let currentFormatClass = 'fmt-book-normal';
+
+        const formats = {
+            book: [
+                { label: 'NORMAL TEXT', class: 'fmt-book-normal' },
+                { label: 'CHAPTER HEADING', class: 'fmt-book-chapter' },
+                { label: 'SCENE BREAK', class: 'fmt-book-scene' }
+            ],
+            screenplay: [
+                { label: 'SCENE HEADING', class: 'fmt-screenplay-scene' },
+                { label: 'ACTION', class: 'fmt-screenplay-action' },
+                { label: 'CHARACTER', class: 'fmt-screenplay-character' },
+                { label: 'DIALOGUE', class: 'fmt-screenplay-dialogue' }
+            ],
+            short: [
+                { label: 'NORMAL TEXT', class: 'fmt-book-normal' },
+                { label: 'SECTION BREAK', class: 'fmt-book-scene' }
+            ]
+        };
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type, isLeft = true) {
+            if (!soundEnabled) return;
+            initAudio();
+
+            if (type === 'clack') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(isLeft ? 140 : 170, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.03);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } 
+            else if (type === 'ding') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.8);
+            }
+            else if (type === 'rip') {
+                const bufferSize = audioCtx.sampleRate * 0.5; 
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+                filter.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                noise.start();
+            }
+        }
+
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            if(isError) toast.classList.add('toast-error');
+            else toast.classList.remove('toast-error');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        function updateFormatToolbar() {
+            const selectedFormat = formatSelect.value;
+            formatToolbar.innerHTML = '';
+            formats[selectedFormat].forEach((fmt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tw-pill ${index === 0 ? 'active' : ''}`;
+                btn.textContent = fmt.label;
+                btn.onclick = () => {
+                    document.querySelectorAll('.tw-pill').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFormatClass = fmt.class;
+                    applyFormatToCurrentLine();
+                    editor.focus();
+                };
+                formatToolbar.appendChild(btn);
+            });
+            currentFormatClass = formats[selectedFormat][0].class;
+        }
+
+        function applyFormatToCurrentLine() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+            let node = selection.anchorNode;
+            if (node.nodeType === 3) node = node.parentNode; 
+            
+            if (editor.contains(node)) {
+                while (node !== editor && node.nodeName !== 'P' && node.nodeName !== 'DIV') node = node.parentNode;
+                if (node !== editor) node.className = currentFormatClass;
+                else { document.execCommand('formatBlock', false, 'p'); applyFormatToCurrentLine(); }
+            }
+        }
+
+        function getCursorPosition() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return null;
+            const range = selection.getRangeAt(0).cloneRange();
+            range.collapse(false);
+            const span = document.createElement('span');
+            span.appendChild(document.createTextNode('\u200b'));
+            range.insertNode(span);
+            const rect = span.getBoundingClientRect();
+            span.parentNode.removeChild(span);
+            return { x: rect.left, y: rect.top, bottom: rect.bottom };
+        }
+
+        desk.addEventListener('click', (e) => {
+            if (e.target.id === 'desk' || e.target.id === 'paper-container') {
+                editor.focus();
+                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges(); sel.addRange(range);
+                }
+            }
+        });
+
+        editor.addEventListener('keydown', (e) => {
+            if (editor.contentEditable === "false" && e.key !== "Backspace") { e.preventDefault(); return; }
+            
+            const text = editor.innerText.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const selection = window.getSelection();
+            const hasSelection = selection.rangeCount > 0 && !selection.getRangeAt(0).collapsed;
+            
+            // Smart limit: prevents typing new chars when full, but allows backspace/delete or overwriting selections
+            if (words >= MAX_PAGE_WORDS && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !hasSelection) {
+                e.preventDefault();
+                showToast("PAGE FULL! Edit text or Rip Page to continue.", true);
+                return;
+            }
+
+            initAudio();
+
+            const isPrintable = e.key.length === 1;
+            if (isPrintable || e.key === "Backspace" || e.key === "Enter") {
+                const isLeft = ['q','w','e','r','t','a','s','d','f','g','z','x','c','v','b'].includes(e.key.toLowerCase());
+                
+                if (e.key === 'Enter') playSound('ding');
+                else playSound('clack', isLeft);
+
+                // Dynamic Striker Logic
+                if (isPrintable) {
+                    const cursor = getCursorPosition();
+                    const chassisRect = chassis.getBoundingClientRect();
+                    
+                    if (cursor) {
+                        const localX = cursor.x - chassisRect.left;
+                        strikerPivot.style.left = `${localX}px`;
+
+                        const distance = chassisRect.top - cursor.bottom + 20; 
+                        striker.style.setProperty('--strike-height', `${Math.max(50, distance)}px`);
+
+                        strikerHead.style.setProperty('--typed-char', `'${e.key.toUpperCase()}'`);
+
+                        const centerDistance = localX - (chassisRect.width / 2);
+                        const angle = centerDistance * 0.05; 
+                        striker.style.setProperty('--strike-angle', `${angle}deg`);
+
+                        ribbon.style.left = `${localX}px`;
+                        ribbon.style.opacity = '0.8';
+                        setTimeout(() => ribbon.style.opacity = '0', 120);
+
+                        striker.classList.remove('strike-active');
+                        void striker.offsetWidth;
+                        striker.classList.add('strike-active');
+                    }
+                }
+            }
+            if (e.key === 'Enter') setTimeout(applyFormatToCurrentLine, 10);
+        });
+
+        editor.addEventListener('input', () => {
+            desk.scrollTop = desk.scrollHeight;
+            const text = editor.innerText.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            
+            let totalWords = pages.reduce((acc, currPage) => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = currPage;
+                const pageText = tempDiv.innerText.trim();
+                return acc + (pageText ? pageText.split(/\s+/).length : 0);
+            }, 0);
+            
+            const oldCurrentPageText = document.createElement('div');
+            oldCurrentPageText.innerHTML = pages[currentPageIndex] || "";
+            const oldWords = oldCurrentPageText.innerText.trim() ? oldCurrentPageText.innerText.trim().split(/\s+/).length : 0;
+            
+            totalWords = totalWords - oldWords + words;
+            dailyWords = totalWords;
+
+            const percentage = Math.min(dailyWords / MAX_DAILY_WORDS, 1);
+            const degrees = -180 + (percentage * 180);
+            gaugeNeedle.style.transform = `rotate(${degrees}deg)`;
+            wordsLeftDisplay.textContent = Math.max(0, MAX_DAILY_WORDS - dailyWords);
+
+            // Updated indicator logic - display big rip button if full
+            if (words >= MAX_PAGE_WORDS) {
+                btnRip.style.display = "block";
+            } else {
+                btnRip.style.display = "none";
+            }
+            pages[currentPageIndex] = editor.innerHTML;
+        });
+
+        function ripCurrentPage() {
+            playSound('rip');
+            editor.contentEditable = "false";
+            btnRip.style.display = "none";
+            paperContainer.classList.add('anim-rip');
+            
+            setTimeout(() => {
+                // Save current edits
+                pages[currentPageIndex] = editor.innerHTML;
+                
+                // If we were on the last page, append a new blank one
+                if (currentPageIndex === pages.length - 1) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = pages[pages.length-1];
+                    if (tempDiv.innerText.trim() !== "") {
+                        pages.push("");
+                    }
+                }
+                
+                // Always jump to the end of the stack when ripping
+                currentPageIndex = pages.length - 1;
+                editor.innerHTML = pages[currentPageIndex] || "<p><br></p>";
+                
+                // Allow edits
+                editor.contentEditable = "true";
+                paperContainer.classList.remove('anim-rip');
+                
+                renderPageStack();
+                editor.focus();
+                desk.scrollTop = desk.scrollHeight;
+                editor.dispatchEvent(new Event('input')); // Force UI refresh
+            }, 600);
+        }
+
+        btnRip.addEventListener('click', ripCurrentPage);
+        btnRipEarly.addEventListener('click', ripCurrentPage);
+
+        function renderPageStack() {
+            pageStack.innerHTML = '';
+            pages.forEach((_, i) => {
+                const pg = document.createElement('div');
+                pg.className = `stack-page ${i === currentPageIndex ? 'active' : ''}`;
+                pg.style.zIndex = pages.length - i;
+                const rot = (Math.random() * 4) - 2;
+                pg.style.transform = `rotate(${rot}deg) translateX(${i === currentPageIndex ? '-15px' : '0'})`;
+                pg.textContent = i + 1;
+                
+                // Clicking an old page allows you to go back and edit it
+                pg.onclick = () => {
+                    pages[currentPageIndex] = editor.innerHTML;
+                    currentPageIndex = i;
+                    editor.innerHTML = pages[currentPageIndex] || "<p><br></p>";
+                    editor.contentEditable = "true"; // Ensure old pages are editable
+                    renderPageStack();
+                    editor.dispatchEvent(new Event('input'));
+                };
+                pageStack.appendChild(pg);
+            });
+        }
+
+        btnSave.addEventListener('click', () => {
+            pages[currentPageIndex] = editor.innerHTML;
+            const saveData = {
+                signature: "RetroScript_Writer_Signature_v1", title: docTitle.value || "Untitled",
+                format: formatSelect.value, pages: pages, currentPageIndex: currentPageIndex, timestamp: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(saveData, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `${saveData.title.replace(/\s+/g, '_')}.rscript`);
+            dlAnchorElem.click();
+            showToast("FILE SAVED TO LOCAL SYSTEM");
+            playSound('ding');
+        });
+
+        btnPublish.addEventListener('click', () => {
+            pages[currentPageIndex] = editor.innerHTML; // Save active edits
+            
+            let fullText = `${docTitle.value || "Untitled Masterpiece"}\n`;
+            fullText += `Format: ${formatSelect.options[formatSelect.selectedIndex].text}\n`;
+            fullText += `Date: ${new Date().toLocaleDateString()}\n`;
+            fullText += `========================================\n\n`;
+
+            pages.forEach((pageHtml, index) => {
+                if(!pageHtml || !pageHtml.trim()) return;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = pageHtml;
+                
+                let hasContent = false;
+                
+                Array.from(tempDiv.childNodes).forEach(node => {
+                    let text = node.textContent.trim();
+                    if (!text) return;
+                    hasContent = true;
+                    
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList.contains('fmt-book-chapter')) fullText += `\n\n      ${text.toUpperCase()}\n\n`;
+                        else if (node.classList.contains('fmt-book-scene')) fullText += `\n\n      * * *\n\n`;
+                        else if (node.classList.contains('fmt-book-normal')) fullText += `    ${text}\n\n`;
+                        else if (node.classList.contains('fmt-screenplay-scene')) fullText += `\n\n${text.toUpperCase()}\n\n`;
+                        else if (node.classList.contains('fmt-screenplay-action')) fullText += `${text}\n\n`;
+                        else if (node.classList.contains('fmt-screenplay-character')) fullText += `\n            ${text.toUpperCase()}\n`;
+                        else if (node.classList.contains('fmt-screenplay-dialogue')) fullText += `      ${text}\n\n`;
+                        else fullText += `${text}\n\n`; 
+                    } else { // Text node
+                        fullText += `${text}\n\n`;
+                    }
+                });
+                
+                if (hasContent && index < pages.length - 1) {
+                    fullText += `\n\n[ PAGE BREAK ]\n\n`;
+                }
+            });
+
+            const blob = new Blob([fullText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(docTitle.value || "Untitled").replace(/\s+/g, '_')}_Manuscript.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast("MANUSCRIPT PUBLISHED TO TXT");
+            playSound('ding');
+        });
+
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.signature !== "RetroScript_Writer_Signature_v1") { showToast("ERROR: INVALID FILE FORMAT", true); return; }
+                    if (data.format !== formatSelect.value) { showToast(`FORMAT MISMATCH: EXPECTED ${formatSelect.value.toUpperCase()}`, true); return; }
+                    pages = data.pages; currentPageIndex = data.currentPageIndex || 0; docTitle.value = data.title;
+                    editor.innerHTML = pages[currentPageIndex];
+                    renderPageStack(); showToast("FILE LOADED SUCCESSFULLY"); playSound('ding'); editor.dispatchEvent(new Event('input'));
+                } catch (err) { showToast("ERROR: CORRUPTED FILE", true); }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; 
+        });
+
+        formatSelect.addEventListener('change', () => { updateFormatToolbar(); showToast("FORMAT CHANGED."); });
+
+        btnSound.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            btnSound.textContent = soundEnabled ? '♪' : '🔇';
+            if (soundEnabled) initAudio();
+        });
+
+        window.onload = () => {
+            updateFormatToolbar();
+            renderPageStack();
+            if (!editor.innerHTML.trim()) editor.innerHTML = '<p><br></p>';
+        };
+    </script>
+</body>
+</html>
